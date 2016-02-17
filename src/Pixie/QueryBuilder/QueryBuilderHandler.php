@@ -23,7 +23,7 @@ class QueryBuilderHandler
     protected $statements = array();
 
     /**
-     * @var PDO
+     * @var \PDO
      */
     protected $pdo;
 
@@ -73,7 +73,10 @@ class QueryBuilderHandler
         }
 
         // Query builder adapter instance
-        $this->adapterInstance = $this->container->build('\\Pixie\\QueryBuilder\\Adapters\\' . ucfirst($this->adapter), array($this->connection));
+        $this->adapterInstance = $this->container->build(
+            '\\Pixie\\QueryBuilder\\Adapters\\' . ucfirst($this->adapter),
+            array($this->connection)
+        );
 
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
@@ -255,9 +258,9 @@ class QueryBuilderHandler
             unset($this->statements['selects']);
         }
 
-        if ($row[0]['field']) {
+        if (is_array($row[0])) {
             return (int) $row[0]['field'];
-        } else if ($row[0]->field) {
+        } elseif (is_object($row[0])) {
             return (int) $row[0]->field;
         }
 
@@ -334,7 +337,7 @@ class QueryBuilderHandler
                 list($result, $time) = $this->statement($queryObject->getSql(), $queryObject->getBindings());
                 $executionTime += $time;
 
-                if($result->rowCount() === 1){
+                if ($result->rowCount() === 1) {
                     $return[] = $this->pdo->lastInsertId();
                 }
             }
@@ -434,18 +437,24 @@ class QueryBuilderHandler
 
         list($response, $executionTime) = $this->statement($queryObject->getSql(), $queryObject->getBindings());
         $this->fireEvents('after-delete', $queryObject, $executionTime);
-        
 
         return $response;
     }
 
     /**
-     * @param $tables
+     * @param $tables Single table or multiple tables as an array or as
+     *                multiple parameters
      *
      * @return static
      */
     public function table($tables)
     {
+        if (!is_array($tables)) {
+            // because a single table is converted to an array anyways,
+            // this makes sense.
+            $tables = func_get_args();
+        }
+
         $instance = new static($this->connection);
         $tables = $this->addTablePrefix($tables, false);
         $instance->addStatement('tables', $tables);
@@ -459,6 +468,10 @@ class QueryBuilderHandler
      */
     public function from($tables)
     {
+        if (!is_array($tables)) {
+            $tables = func_get_args();
+        }
+
         $tables = $this->addTablePrefix($tables, false);
         $this->addStatement('tables', $tables);
         return $this;
@@ -595,7 +608,7 @@ class QueryBuilderHandler
             $value = $operator;
             $operator = '=';
         }
-        return $this->_where($key, $operator, $value);
+        return $this->whereHandler($key, $operator, $value);
     }
 
     /**
@@ -613,7 +626,7 @@ class QueryBuilderHandler
             $operator = '=';
         }
 
-        return $this->_where($key, $operator, $value, 'OR');
+        return $this->whereHandler($key, $operator, $value, 'OR');
     }
 
     /**
@@ -630,7 +643,7 @@ class QueryBuilderHandler
             $value = $operator;
             $operator = '=';
         }
-        return $this->_where($key, $operator, $value, 'AND NOT');
+        return $this->whereHandler($key, $operator, $value, 'AND NOT');
     }
 
     /**
@@ -647,7 +660,7 @@ class QueryBuilderHandler
             $value = $operator;
             $operator = '=';
         }
-        return $this->_where($key, $operator, $value, 'OR NOT');
+        return $this->whereHandler($key, $operator, $value, 'OR NOT');
     }
 
     /**
@@ -656,9 +669,9 @@ class QueryBuilderHandler
      *
      * @return $this
      */
-    public function whereIn($key, array $values)
+    public function whereIn($key, $values)
     {
-        return $this->_where($key, 'IN', $values, 'AND');
+        return $this->whereHandler($key, 'IN', $values, 'AND');
     }
 
     /**
@@ -667,9 +680,9 @@ class QueryBuilderHandler
      *
      * @return $this
      */
-    public function whereNotIn($key, array $values)
+    public function whereNotIn($key, $values)
     {
-        return $this->_where($key, 'NOT IN', $values, 'AND');
+        return $this->whereHandler($key, 'NOT IN', $values, 'AND');
     }
 
     /**
@@ -678,9 +691,9 @@ class QueryBuilderHandler
      *
      * @return $this
      */
-    public function orWhereIn($key, array $values)
+    public function orWhereIn($key, $values)
     {
-        return $this->_where($key, 'IN', $values, 'OR');
+        return $this->whereHandler($key, 'IN', $values, 'OR');
     }
 
     /**
@@ -689,9 +702,9 @@ class QueryBuilderHandler
      *
      * @return $this
      */
-    public function orWhereNotIn($key, array $values)
+    public function orWhereNotIn($key, $values)
     {
-        return $this->_where($key, 'NOT IN', $values, 'OR');
+        return $this->whereHandler($key, 'NOT IN', $values, 'OR');
     }
 
     /**
@@ -703,7 +716,7 @@ class QueryBuilderHandler
      */
     public function whereBetween($key, $valueFrom, $valueTo)
     {
-        return $this->_where($key, 'BETWEEN', array($valueFrom, $valueTo), 'AND');
+        return $this->whereHandler($key, 'BETWEEN', array($valueFrom, $valueTo), 'AND');
     }
 
     /**
@@ -715,7 +728,7 @@ class QueryBuilderHandler
      */
     public function orWhereBetween($key, $valueFrom, $valueTo)
     {
-        return $this->_where($key, 'BETWEEN', array($valueFrom, $valueTo), 'OR');
+        return $this->whereHandler($key, 'BETWEEN', array($valueFrom, $valueTo), 'OR');
     }
 
     /**
@@ -724,7 +737,7 @@ class QueryBuilderHandler
      */
     public function whereNull($key)
     {
-        return $this->_whereNull($key);
+        return $this->whereNullHandler($key);
     }
 
     /**
@@ -733,7 +746,7 @@ class QueryBuilderHandler
      */
     public function whereNotNull($key)
     {
-        return $this->_whereNull($key, 'NOT');
+        return $this->whereNullHandler($key, 'NOT');
     }
 
     /**
@@ -742,7 +755,7 @@ class QueryBuilderHandler
      */
     public function orWhereNull($key)
     {
-        return $this->_whereNull($key, '', 'or');
+        return $this->whereNullHandler($key, '', 'or');
     }
 
     /**
@@ -751,10 +764,10 @@ class QueryBuilderHandler
      */
     public function orWhereNotNull($key)
     {
-        return $this->_whereNull($key, 'NOT', 'or');
+        return $this->whereNullHandler($key, 'NOT', 'or');
     }
 
-    protected function _whereNull($key, $prefix = '', $operator = '')
+    protected function whereNullHandler($key, $prefix = '', $operator = '')
     {
         $key = $this->adapterInstance->wrapSanitizer($this->addTablePrefix($key));
         return $this->{$operator . 'Where'}($this->raw("{$key} IS {$prefix} NULL"));
@@ -772,7 +785,7 @@ class QueryBuilderHandler
     public function join($table, $key, $operator = null, $value = null, $type = 'inner')
     {
         if (!$key instanceof \Closure) {
-            $key = function($joinBuilder) use ($key, $operator, $value) {
+            $key = function ($joinBuilder) use ($key, $operator, $value) {
                 $joinBuilder->on($key, $operator, $value);
             };
         }
@@ -788,6 +801,40 @@ class QueryBuilderHandler
         $this->statements['joins'][] = compact('type', 'table', 'joinBuilder');
 
         return $this;
+    }
+
+    /**
+     * Runs a transaction
+     *
+     * @param $callback
+     *
+     * @return $this
+     */
+    public function transaction(\Closure $callback)
+    {
+        try {
+            // Begin the PDO transaction
+            $this->pdo->beginTransaction();
+
+            // Get the Transaction class
+            $transaction = $this->container->build('\\Pixie\\QueryBuilder\\Transaction', array($this->connection));
+
+            // Call closure
+            $callback($transaction);
+
+            // If no errors have been thrown or the transaction wasn't completed within
+            // the closure, commit the changes
+            $this->pdo->commit();
+
+            return $this;
+        } catch (TransactionHaltException $e) {
+            // Commit or rollback behavior has been handled in the closure, so exit
+            return $this;
+        } catch (\Exception $e) {
+            // something happened, rollback changes
+            $this->pdo->rollBack();
+            return $this;
+        }
     }
 
     /**
@@ -879,7 +926,7 @@ class QueryBuilderHandler
      *
      * @return $this
      */
-    protected function _where($key, $operator = null, $value = null, $joiner = 'AND')
+    protected function whereHandler($key, $operator = null, $value = null, $joiner = 'AND')
     {
         $key = $this->addTablePrefix($key);
         $this->statements['wheres'][] = compact('key', 'operator', 'value', 'joiner');
@@ -972,11 +1019,14 @@ class QueryBuilderHandler
      *
      * @return void
      */
-    public function registerEvent($event, $table = ':any', \Closure $action)
+    public function registerEvent($event, $table, \Closure $action)
     {
+        $table = $table ?: ':any';
+
         if ($table != ':any') {
             $table = $this->addTablePrefix($table, false);
         }
+
         return $this->connection->getEventHandler()->registerEvent($event, $table, $action);
     }
 
@@ -999,7 +1049,8 @@ class QueryBuilderHandler
      * @param      $event
      * @return mixed
      */
-    public function fireEvents($event) {
+    public function fireEvents($event)
+    {
         $params = func_get_args();
         array_unshift($params, $this);
         return call_user_func_array(array($this->connection->getEventHandler(), 'fireEvents'), $params);

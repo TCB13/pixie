@@ -375,7 +375,11 @@ abstract class BaseAdapter
 
                 // Build a new NestedCriteria class, keep it by reference so any changes made
                 // in the closure should reflect here
-                $nestedCriteria = $this->container->build('\\Pixie\\QueryBuilder\\NestedCriteria', array($this->connection));
+                $nestedCriteria = $this->container->build(
+                    '\\Pixie\\QueryBuilder\\NestedCriteria',
+                    array($this->connection)
+                );
+
                 $nestedCriteria = & $nestedCriteria;
                 // Call the closure with our new nestedCriteria object
                 $key($nestedCriteria);
@@ -405,6 +409,8 @@ abstract class BaseAdapter
                         $criteria .= ' (' . $valuePlaceholder . ') ';
                         break;
                 }
+            } elseif ($value instanceof Raw) {
+                $criteria .= "{$statement['joiner']} {$key} {$statement['operator']} $value";
             } else {
                 // Usual where like criteria
 
@@ -429,7 +435,7 @@ abstract class BaseAdapter
         }
 
         // Clear all white spaces, and, or from beginning and white spaces from ending
-        $criteria = preg_replace('/^(\s?AND ?|\s?OR ?)|\s$/i','', $criteria);
+        $criteria = preg_replace('/^(\s?AND ?|\s?OR ?)|\s$/i', '', $criteria);
 
         return array($criteria, $bindings);
     }
@@ -511,11 +517,21 @@ abstract class BaseAdapter
                 $aliasTable = $joinArr['table'][1];
                 $table = $this->wrapSanitizer($mainTable) . ' AS ' . $this->wrapSanitizer($aliasTable);
             } else {
-                $table = $joinArr['table'] instanceof Raw ? (string) $joinArr['table'] : $this->wrapSanitizer($joinArr['table']);
+                $table = $joinArr['table'] instanceof Raw ?
+                    (string) $joinArr['table'] :
+                    $this->wrapSanitizer($joinArr['table']);
             }
             $joinBuilder = $joinArr['joinBuilder'];
 
-            $sqlArr = array($sql, strtoupper($joinArr['type']), 'JOIN', $table, 'ON', $joinBuilder->getQuery('criteriaOnly', false)->getSql());
+            $sqlArr = array(
+                $sql,
+                strtoupper($joinArr['type']),
+                'JOIN',
+                $table,
+                'ON',
+                $joinBuilder->getQuery('criteriaOnly', false)->getSql()
+            );
+
             $sql = $this->concatenateQuery($sqlArr);
         }
 
