@@ -391,7 +391,7 @@ abstract class BaseAdapter
                 $criteria .= $statement['joiner'] . ' (' . $queryObject->getSql() . ') ';
             } elseif (is_array($value)) {
                 // where_in or between like query
-                $criteria .=  $statement['joiner'] . ' ' . $key . ' ' . $statement['operator'];
+                $criteria .= $statement['joiner'] . ' ' . $key . ' ' . $statement['operator'];
 
                 switch ($statement['operator']) {
                     case 'BETWEEN':
