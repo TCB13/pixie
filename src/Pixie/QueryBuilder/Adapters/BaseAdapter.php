@@ -391,7 +391,7 @@ abstract class BaseAdapter
                 $criteria .= $statement['joiner'] . ' (' . $queryObject->getSql() . ') ';
             } elseif (is_array($value)) {
                 // where_in or between like query
-                $criteria .= $statement['joiner'] . ' ' . $key . ' ' . $statement['operator'];
+                $criteria .=  $statement['joiner'] . ' ' . $key . ' ' . $statement['operator'];
 
                 switch ($statement['operator']) {
                     case 'BETWEEN':
@@ -410,7 +410,7 @@ abstract class BaseAdapter
                         break;
                 }
             } elseif ($value instanceof Raw) {
-                $criteria .= "{$statement['joiner']} {$key} {$statement['operator']} $value";
+                $criteria .= " {$statement['joiner']} {$key} {$statement['operator']} $value";
             } else {
                 // Usual where like criteria
 
@@ -419,7 +419,7 @@ abstract class BaseAdapter
 
                     // We are not binding values, lets sanitize then
                     $value = $this->wrapSanitizer($value);
-                    $criteria .= $statement['joiner'] . ' ' . $key . ' ' . $statement['operator'] . ' ' . $value . ' ';
+                    $criteria .= ' ' . $statement['joiner'] . ' ' . $key . ' ' . $statement['operator'] . ' ' . $value . ' ';
                 } elseif ($statement['key'] instanceof Raw) {
                     $criteria .= $statement['joiner'] . ' ' . $key . ' ';
                     $bindings = array_merge($bindings, $statement['key']->getBindings());
