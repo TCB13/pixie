@@ -63,7 +63,7 @@ QB::registerEvent('before-select', 'users', function($qb)
 ```
 
 
-There are many advanced options which are documented below. Sold? Lets install.
+There are many advanced options which are documented below. Sold? Let's install.
 
 ## Installation
 
@@ -71,7 +71,7 @@ Pixie uses [Composer](http://getcomposer.org/doc/00-intro.md#installation-nix) t
 
 Learn to use composer and add this to require section (in your composer.json):
 
-    "usmanhalalit/pixie": "1.*@dev"
+    "usmanhalalit/pixie": "2.*@dev"
 
 And run:
 
@@ -85,7 +85,6 @@ Library on [Packagist](https://packagist.org/packages/usmanhalalit/pixie).
 
  - [Connection](#connection)
     - [Alias](#alias)
-       - [Code Completion](#code-completion)
     - [Multiple Connection](#alias)
     - [SQLite and PostgreSQL Config Sample](sqlite-and-postgresql-config-sample)
  - [Query](#query)
@@ -160,7 +159,7 @@ new \Pixie\Connection('mysql', $config, 'MyAlias');
 When not using an alias you can instantiate the QueryBuilder handler separately, helpful for Dependency Injection and Testing.
 
 ```PHP
-$connection = new \Pixie\Connection('mysql', $config));
+$connection = new \Pixie\Connection('mysql', $config);
 $qb = new \Pixie\QueryBuilder\QueryBuilderHandler($connection);
 
 $query = $qb->table('my_table')->where('name', '=', 'Sana');
@@ -169,17 +168,6 @@ var_dump($query->get());
 ```
 
 `$connection` here is optional, if not given it will always associate itself to the first connection, but it can be useful when you have multiple database connections.
-
-#### Code Completion
-When using an alias, you can enable IDE code completion by creating a "stub" for that alias. For example
-
-```PHP
-class MyAlias extends \Pixie\QueryBuilder\QueryBuilderHandlerStub {
-
-}
-```
-
-It is important that your stub *is not* included anywhere in your project. The presence of the file should be sufficient to enable code completion.
 
 ### SQLite and PostgreSQL Config Sample
 ```PHP
@@ -329,7 +317,7 @@ QB::table('my_table')
 
 ### Group By and Order By
 ```PHP
-$query = QB::table('my_table')->groupBy('age')->orderBy('created_at');
+$query = QB::table('my_table')->groupBy('age')->orderBy('created_at', 'ASC');
 ```
 
 #### Multiple Group By
@@ -501,7 +489,7 @@ If you wish to manually commit or rollback your changes, you can use the
 `commit()` and `rollback()` methods accordingly:
 
 ```PHP
-QB::transaction(function (qb) {
+QB::transaction(function ($qb) {
     $qb->table('my_table')->insert(array(/* data... */));
 
     $qb->commit(); // to commit the changes (data would be saved)
@@ -633,7 +621,7 @@ QB::registerEvent('after-delete', 'my_table', function($queryBuilder, $queryObje
 
 Pixie passes the current instance of query builder as first parameter of your closure so you can build queries with this object, you can do anything like usual query builder (`QB`).
 
-If something other than `null` is returned from the `before-*` query handler, the value will be result of execution and DB will not be actually queried (and thus, corresponding `after-*` handler will not be called ether).
+If something other than `null` is returned from the `before-*` query handler, the value will be result of execution and DB will not be actually queried (and thus, corresponding `after-*` handler will not be called either).
 
 Only on `after-*` events you get three parameters: **first** is the query builder, **third** is the execution time as float and **the second** varies:
 
@@ -666,6 +654,6 @@ Here are some cases where Query Events can be extremely helpful:
  - Of course Query Events don't work with raw queries.
 
 ___
-If you find any typo then please edit and send pull request.
+If you find any typo then please edit and send a pull request.
 
-&copy; 2015 [Muhammad Usman](http://usman.it/). Licensed under MIT license.
+&copy; 2016 [Muhammad Usman](http://usman.it/). Licensed under MIT license.
